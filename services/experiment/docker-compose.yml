@@ -1,0 +1,117 @@
+# ==============================================
+# ============= 🟣 EXPERIMENTO ==================
+# ==============================================
+# Capa 6 — Experimento
+# Si un servicio de esta capa cae, el ecosistema
+# ni se entera. Exploración, no infraestructura.
+#
+# Servicios:
+#   - mariadb    (base de datos para wordpress)
+#   - wordpress  (CMS / blog)
+#   - arcane     (panel de gestión de servidores de juego)
+#   - resume     (constructor de CV)
+# ==============================================
+
+services:
+  # --- MariaDB (base de datos para WordPress) ---
+  mariadb:
+    image: tobi312/rpi-mariadb:10.5-debian
+    container_name: mariadb
+    restart: always
+    environment:
+      TZ: ${TZ}
+      MYSQL_ROOT_PASSWORD: ${MARIA_ROOT_PASS}
+      MYSQL_DATABASE: mariadb
+      MYSQL_USER: mariadb
+      MYSQL_PASSWORD: ${MARIA_PASS}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  # --- WordPress (CMS / blog) ---
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress
+    restart: always
+    environment:
+      TZ: ${TZ}
+      WORDPRESS_DB_HOST: mariadb
+      WORDPRESS_DB_USER: mariadb
+      WORDPRESS_DB_PASSWORD: ${MARIA_PASS}
+      WORDPRESS_DB_NAME: mariadb
+    volumes:
+      - wordp_data:/var/www/html
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wordp.rule=Host(`wordp.${DOMINIO}`)"
+      - "traefik.http.routers.wordp.entrypoints=web"
+      - "traefik.http.services.wordp.loadbalancer.server.port=80"
+
+  # --- Arcane (panel de gestión de servidores de juego) ---
+  arcane:
+    image: ghcr.io/getarcaneapp/arcane:latest
+    container_name: arcane
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      PROJECTS_DIRECTORY: ./data/arcane/projects
+      APP_URL: https://arcane.${DOMINIO}
+      ENCRYPTION_KEY: ${ARCANE_ENCRYPTION_KEY}
+      JWT_SECRET: ${ARCANE_JWT_SECRET}
+      POSTGRES_USER: ${ARCANE_PG_USER}
+      POSTGRES_PASSWORD: ${ARCANE_PG_PASSWORD}
+      POSTGRES_DB: ${ARCANE_PG_DB}
+      DATABASE_URL: postgresql://${ARCANE_PG_USER}:${ARCANE_PG_PASSWORD}@postgres:5432/${ARCANE_PG_DB}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - arcane-data:/app/data
+      - ./data/arcane/projects:/app/data/projects
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.arcane.rule=Host(`arcane.${DOMINIO}`)"
+      - "traefik.http.routers.arcane.entrypoints=web"
+      - "traefik.http.services.arcane.loadbalancer.server.port=3552"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+
+  # --- Reactive Resume (constructor de CV) ---
+  resume:
+    image: amruthpillai/reactive-resume:latest
+    container_name: resume
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      PORT: ${RR_PORT}
+      NODE_ENV: ${RR_ENV}
+      PUBLIC_URL: https://resume.${DOMINIO}
+      STORAGE_URL: ${RR_STORAGE_URL}
+      CHROME_TOKEN: ${RR_CHROME_TOKEN}
+      CHROME_URL: ${RR_CHROME_URL}
+      DATABASE_URL: ${RR_DB_URL}
+      ACCESS_TOKEN_SECRET: ${RR_ACCESS_TOKEN}
+      REFRESH_TOKEN_SECRET: ${RR_REFRESH_TOKEN}
+      MAIL_FROM: ${RR_MAIL_FROM}
+      STORAGE_ENDPOINT: ${RR_STORAGE_ENDPOINT}
+      STORAGE_PORT: ${RR_STORAGE_PORT}
+      STORAGE_BUCKET: ${RR_STORAGE_BUCKET}
+      STORAGE_ACCESS_KEY: ${RR_STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${RR_STORAGE_SECRET_KEY}
+      STORAGE_USE_SSL: false
+      STORAGE_SKIP_BUCKET_CHECK: false
+      REDIS_URL: ${RR_REDIS_URL}
+      GOOGLE_CLIENT_ID: ${RR_GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${RR_GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: https://resume.${DOMINIO}/api/auth/callback/google
+      GITHUB_CLIENT_ID: ${RR_GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${RR_GITHUB_CLIENT_SECRET}
+      GITHUB_CALLBACK_URL: https://resume.${DOMINIO}/api/auth/callback/github
+      APP_URL: https://resume.${DOMINIO}
+      AUTH_SECRET: ${RR_AUTH_SECRET}
+      ENCRYPTION_SECRET: ${RR_ENCRYPTION_SECRET}
+      DISABLE_SIGNUPS: false
+      DISABLE_EMAIL_AUTH: false
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.resume.rule=Host(`resume.${DOMINIO}`)"
+      - "traefik.http.routers.resume.entrypoints=web"
+      - "traefik.http.services.resume.loadbalancer.server.port=3000"
+      - "com.centurylinklabs.watchtower.enable=true"

@@ -1,0 +1,138 @@
+# ==============================================
+# ============= 🟡 EXTENSIÓN ===================
+# ==============================================
+# Capa 3 — Extensión
+# Si un servicio de esta capa cae, funcionalidades
+# específicas desaparecen, pero Bildung sigue siendo Bildung.
+#
+# Servicios:
+#   - minio          (almacenamiento S3-compatible)
+#   - flowise        (constructor visual de agentes IA)
+#   - flowise-worker (ejecutor de tareas de flowise)
+#   - chrome         (navegador headless para PDFs)
+#   - oikb           (sincronizador de Knowledge Bases de Open WebUI)
+# ==============================================
+
+services:
+  # --- MinIO (almacenamiento S3-compatible) ---
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data
+    volumes:
+      - ./data/minio:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_R_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_R_PASS}
+      MINIO_CONSOLE_ADDRESS: "minio:39001"
+      TZ: ${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio.rule=Host(`minio.${DOMINIO}`)"
+      - "traefik.http.routers.minio.entrypoints=web"
+      - "traefik.http.services.minio.loadbalancer.server.port=39001"
+
+  # --- Flowise (constructor visual de agentes IA) ---
+  flowise:
+    image: flowiseai/flowise:latest
+    container_name: flowise-main
+    restart: always
+    environment:
+      FLOWISE_USERNAME: ${FLOWISE_USERNAME}
+      FLOWISE_PASSWORD: ${FLOWISE_PASSWORD}
+      MODE: ${FLOWISE_MODE}
+      REDIS_URL: ${FLOWISE_REDIS_URL}
+      REDIS_PASSWORD: ${FLOWISE_REDIS_PASSWORD}
+      DATABASE_TYPE: ${FLOWISE_DATABASE_TYPE}
+      DATABASE_HOST: ${FLOWISE_DATABASE_HOST}
+      DATABASE_PORT: ${FLOWISE_DATABASE_PORT}
+      DATABASE_NAME: ${FLOWISE_DATABASE_NAME}
+      DATABASE_USER: ${FLOWISE_DATABASE_USER}
+      DATABASE_PASSWORD: ${FLOWISE_DATABASE_PASSWORD}
+      PORT: ${FLOWISE_PORT}
+      WORKER_PORT: ${FLOWISE_WORKER_PORT}
+      JWT_AUTH_TOKEN_SECRET: ${FLOWISE_JWT_AUTH_TOKEN_SECRET}
+      JWT_REFRESH_TOKEN_SECRET: ${FLOWISE_JWT_REFRESH_TOKEN_SECRET}
+      JWT_ISSUER: ${FLOWISE_JWT_ISSUER}
+      JWT_AUDIENCE: ${FLOWISE_JWT_AUDIENCE}
+      JWT_TOKEN_EXPIRY_IN_MINUTES: ${FLOWISE_JWT_TOKEN_EXPIRY_IN_MINUTES}
+      SHOW_COMMUNITY_NODES: ${FLOWISE_SHOW_COMMUNITY_NODES}
+      ENABLE_METRICS: ${FLOWISE_ENABLE_METRICS}
+      METRICS_PROVIDER: ${FLOWISE_METRICS_PROVIDER}
+      TZ: ${TZ}
+    volumes:
+      - ./data/flowise:/root/.flowise
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flowise.rule=Host(`flowise.${DOMINIO}`)"
+      - "traefik.http.routers.flowise.entrypoints=web"
+      - "traefik.http.services.flowise.loadbalancer.server.port=3000"
+
+  # --- Flowise Worker (ejecutor de tareas) ---
+  flowise-worker:
+    image: flowiseai/flowise-worker:latest
+    container_name: flowise-worker
+    restart: always
+    ports:
+      - "5566:5566"
+    environment:
+      MODE: ${FLOWISE_MODE}
+      REDIS_URL: ${FLOWISE_REDIS_URL}
+      REDIS_PASSWORD: ${FLOWISE_REDIS_PASSWORD}
+      DATABASE_TYPE: ${FLOWISE_DATABASE_TYPE}
+      DATABASE_HOST: ${FLOWISE_DATABASE_HOST}
+      DATABASE_PORT: ${FLOWISE_DATABASE_PORT}
+      DATABASE_NAME: ${FLOWISE_DATABASE_NAME}
+      DATABASE_USER: ${FLOWISE_DATABASE_USER}
+      DATABASE_PASSWORD: ${FLOWISE_DATABASE_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - ./data/flowise:/root/.flowise
+
+  # --- Chrome (navegador headless para PDFs) ---
+  chrome:
+    image: ghcr.io/browserless/chromium:v2.18.0
+    container_name: chrome
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TIMEOUT: ${CHROME_TIMEOUT}
+      CONCURRENT: ${CHROME_CONCURRENT}
+      TOKEN: ${CHROME_TOKEN}
+      EXIT_ON_HEALTH_FAILURE: ${CHROME_EXIT_FAILURE}
+      PRE_REQUEST_HEALTH_CHECK: ${CHROME_HEALTH_CHECK}
+      TZ: ${TZ}
+
+  # --- oikb (sincronizador de Knowledge Bases) ---
+  # Modo daemon: lee .oikb.yaml y sincroniza fuentes locales/remotas
+  # a Knowledge Bases de Open WebUI en schedule o vía API/webhook.
+  # Los directorios del host se montan en /sync/:ro.
+  oikb:
+    image: ghcr.io/open-webui/oikb:latest
+    container_name: oikb
+    restart: unless-stopped
+    command: daemon
+    environment:
+      - OPEN_WEBUI_URL=http://open-webui:8080
+      - OPEN_WEBUI_API_KEY=${OIKB_OPEN_WEBUI_API_KEY}
+      - OIKB_API_KEY=${OIKB_API_KEY}
+      - LOG_FORMAT=json
+      - KB_BILDUNG_ID=${KB_BILDUNG_ID}
+      - KB_OBSIDIAN_ID=${KB_OBSIDIAN_ID}
+      - TZ=${TZ}
+    volumes:
+      - ./data/oikb/.oikb.yaml:/app/.oikb.yaml:ro
+      - ${SYNC_PATH:-/home/user/sync}:/sync:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oikb.rule=Host(`oikb.${DOMINIO}`)"
+      - "traefik.http.routers.oikb.entrypoints=web"
+      - "traefik.http.services.oikb.loadbalancer.server.port=8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

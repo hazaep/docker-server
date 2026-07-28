@@ -1,0 +1,31 @@
+# ==============================================
+# oikb — Knowledge Base Sync Configuration
+# ==============================================
+# Copy this file to ./data/oikb/.oikb.yaml
+# Variables use ${VAR} or ${VAR:-default} syntax,
+# resolved from the container environment at runtime.
+# ==============================================
+
+defaults:
+  interval: 30m
+  concurrency: 2
+  filter:
+    max-size: 50mb
+    include: ["**.md"]
+
+sources:
+  # --- Bildung documentation ---
+  # Syncs the project documentation into its own Knowledge Base
+  # so the LLM has full context of the ecosystem architecture.
+  - name: bildung-docs
+    source: /sync/bildung/docs
+    kb-id: ${KB_BILDUNG_ID}
+
+  # --- Obsidian vault ---
+  # Uncomment and configure when your vault is synced to the Pi.
+  # - name: obsidian-vault
+  #   source: /sync/obsidian-vault
+  #   kb-id: ${KB_OBSIDIAN_ID}
+  #   filter:
+  #     include: ["**.md"]
+  #     exclude: [".obsidian/**", ".trash/**", "_templates/**"]

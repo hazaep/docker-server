@@ -1,0 +1,164 @@
+# ==============================================
+# ============= 🟠 CORE ========================
+# ==============================================
+# Capa 2 — Core
+# Si un servicio de esta capa cae, el propósito
+# central de Bildung se degrada gravemente.
+#
+# Servicios:
+#   - n8n           (automatización)
+#   - open-webui    (interfaz unificada de IA)
+#   - open-terminal (terminal web del host)
+#   - nocodb        (base de datos tipo Airtable)
+#   - watchtower    (actualizaciones automáticas)
+# ==============================================
+
+services:
+  # --- n8n (corazón de la automatización) ---
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      TZ: ${TZ}
+      N8N_PROXY_HOPS: 1
+      N8N_TRUST_PROXY: true
+      N8N_DIAGNOSTICS_ENABLED: false
+      N8N_PERSONALIZATION_ENABLED: false
+      N8N_COMPRESSION_NODE_MAX_ZIP_ENTRIES: 5000
+      N8N_RUNNERS_TASK_TIMEOUT: 300
+      N8N_RUNNERS_MODE: "external"
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: "0.0.0.0"
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_TOKEN}
+      N8N_NATIVE_PYTHON_RUNNER: true
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: false
+      N8N_EDITOR_BASE_URL: https://n8n.${DOMINIO}
+      N8N_HOST: n8n.${DOMINIO}
+      N8N_PROTOCOL: https
+      N8N_SECURE_COOKIE: true
+      N8N_WEBHOOK_URL: https://hooks.${DOMINIO}
+      WEBHOOK_TUNNEL_URL: https://hooks.${DOMINIO}
+      NODE_ENV: production
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: ${N8N_POSTGRES_HOST}
+      DB_POSTGRESDB_PORT: ${N8N_POSTGRES_PORT}
+      DB_POSTGRESDB_DATABASE: ${N8N_POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${N8N_POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_POSTGRES_PASSWORD}
+      QUEUE_BULL_REDIS_HOST: ${N8N_REDIS_HOST}
+      QUEUE_BULL_REDIS_PORT: ${N8N_REDIS_PORT}
+      QUEUE_BULL_REDIS_PASSWORD: ${N8N_REDIS_PASSWORD}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.n8n-service.loadbalancer.server.port=5678"
+      - "traefik.http.routers.n8n-editor.middlewares=cloudflare-https@file"
+      - "traefik.http.routers.n8n-editor.rule=Host(`n8n.${DOMINIO}`)"
+      - "traefik.http.routers.n8n-editor.entrypoints=web"
+      - "traefik.http.routers.n8n-editor.service=n8n-service"
+      - "traefik.http.routers.n8n-webhook.middlewares=cloudflare-https@file"
+      - "traefik.http.routers.n8n-webhook.rule=Host(`hooks.${DOMINIO}`) && PathPrefix(`/webhook`)"
+      - "traefik.http.routers.n8n-webhook.entrypoints=web"
+      - "traefik.http.routers.n8n-webhook.service=n8n-service"
+      - "traefik.http.routers.n8n-mcp.middlewares=cloudflare-https@file"
+      - "traefik.http.routers.n8n-mcp.rule=Host(`hooks.${DOMINIO}`) && PathPrefix(`/mcp`)"
+      - "traefik.http.routers.n8n-mcp.entrypoints=web"
+      - "traefik.http.routers.n8n-mcp.service=n8n-service"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # --- n8n Runners (ejecución de tareas con dependencias extra) ---
+  # Imagen personalizada: extiende n8nio/runners:latest con
+  # paquetes JS (moment, uuid) y Python (numpy, pandas, sklearn).
+  # El Dockerfile y la config están en ./data/n8n-runners/
+  n8n-runners:
+    build:
+      context: ./data/n8n-runners
+      dockerfile: Dockerfile
+    image: bildung/n8n-runners:custom
+    container_name: n8n-runners
+    restart: unless-stopped
+    environment:
+      N8N_RUNNERS_TASK_BROKER_URI: "http://n8n:5679"
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_TOKEN}
+      TZ: ${TZ}
+
+  # --- Open WebUI (interfaz unificada de IA) ---
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    volumes:
+      - ./data/open-webui:/app/backend/data
+    environment:
+      - TZ=${TZ}
+      - JINA_API_KEY=${JINA_API_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.rule=Host(`webui.${DOMINIO}`)"
+      - "traefik.http.routers.webui.entrypoints=web"
+      - "traefik.http.services.webui.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # --- Open Terminal (terminal web del host) ---
+  open-terminal:
+    image: ghcr.io/open-webui/open-terminal
+    container_name: open-terminal
+    restart: unless-stopped
+    volumes:
+      - ./data/open-terminal:/home/user
+    environment:
+      - OPEN_TERMINAL_API_KEY=${OPEN_TERMINAL_API_KEY}
+      - JINA_API_KEY=${JINA_API_KEY}
+      - OPEN_TERMINAL_PACKAGES=${OPEN_TERMINAL_PACKAGES}
+      - OPEN_TERMINAL_PIP_PACKAGES=${OPEN_TERMINAL_PIP_PACKAGES}
+      - TZ=${TZ}
+
+  # --- NocoDB (base de datos tipo Airtable) ---
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: nocodb
+    restart: always
+    environment:
+      TZ: ${TZ}
+      NC_PUBLIC_URL: ${NOCO_PUBLIC_URL}
+      NC_ADMIN_EMAIL: ${NOCO_ADMIN_EMAIL}
+      NC_ADMIN_PASSWORD: ${NOCO_ADMIN_PASSWORD}
+      NC_GOOGLE_CLIENT_ID: ${NOCO_GOOGLE_CLIENT}
+      NC_GOOGLE_CLIENT_SECRET: ${NOCO_GOOGLE_SECRET}
+      NC_REDIS_URL: ${NOCO_REDIS_URL}
+      NC_DB: "pg://postgres:5432?u=${NOCO_DB_USER}&p=${NOCO_DB_PW}&d=${NOCO_DB_NAME}"
+      NC_DISABLE_TELE: false
+      NC_SANITIZE_COLUMN_NAME: true
+      NC_ALLOW_LOCAL_EXTERNAL_DBS: true
+      NC_WEBHOOK_ALLOW_PRIVATE_NETWORK: true
+    volumes:
+      - nocodb-data:/usr/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nocodb.rule=Host(`nocodb.${DOMINIO}`)"
+      - "traefik.http.routers.nocodb.entrypoints=web"
+      - "traefik.http.services.nocodb.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # --- Watchtower (actualizaciones automáticas) ---
+  watchtower:
+    image: nickfedor/watchtower:latest  # maintained ARM64 fork
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      WATCHTOWER_CLEANUP: ${WATCHTOWER_CLEANUP}
+      WATCHTOWER_REMOVE_VOLUMES: ${WATCHTOWER_REMOVE_VOLUMES}
+      WATCHTOWER_SCHEDULE: ${WATCHTOWER_SCHEDULE}
+      TZ: ${TZ}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"

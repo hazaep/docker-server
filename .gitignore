@@ -1,0 +1,130 @@
+# ==============================================
+# 🔐 SECRETS
+# ==============================================
+.env
+env.txt
+env.*.txt
+.env.*
+*.env.save
+
+# ==============================================
+# 🔑 KEYS & CERTS
+# ==============================================
+*.pem
+*.key
+id_*
+*.crt
+cert.pem.txt
+key.pem.txt
+encryption.key
+*_secret.key
+token_hash_secret.key
+
+# ==============================================
+# 📦 RUNTIME DATA (volumes)
+# ==============================================
+# Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.rdb
+
+# Backups
+**/backups/daily/
+**/backups/weekly/
+**/backups/monthly/
+**/backups/last/
+!**/data/backups/
+
+# Service data
+**/redis_data/
+**/minio_data/
+**/vaultwarden_data/
+**/.minio.sys/
+
+# ==============================================
+# 📝 LOGS
+# ==============================================
+*.log
+*.log1.txt
+*.log2.txt
+*.log.conf
+*.jsonl
+logs/
+
+# ==============================================
+# 🏠 HOME DIR ARTIFACTS (open-terminal)
+# ==============================================
+.bash_history
+.bash_logout
+.bashrc
+.profile
+.startup.sh
+prueba.py
+
+# ==============================================
+# 🔧 LOCAL TOOLS & STATE
+# ==============================================
+.local/
+.config/
+.state/
+.Sync/
+.stfolder/
+.stignore
+
+# ==============================================
+# ☁️ SYNCTHING
+# ==============================================
+.Sync/
+.stfolder/
+.syncthing*
+syncthing*.log
+**/syncthing/
+
+# ==============================================
+# 🐳 DOCKER BUILD ARTIFACTS
+# ==============================================
+.docker/
+docker-build/
+
+# ==============================================
+# 💤 BACKUPS & SNAPSHOTS
+# ==============================================
+*.backup
+*.save
+*.bkp
+**/open-terminal-back/
+
+# ==============================================
+# 🌱 SEMILLA (archived old configs)
+# ==============================================
+semilla/
+
+# ==============================================
+# 🔄 MIGRATION TEMP FILES
+# ==============================================
+migration/
+
+# ==============================================
+# 📁 EMPTY DIRS PLACEHOLDERS
+# ==============================================
+# Keep data/ structure but ignore contents
+**/data/arcane/projects/
+!**/data/arcane/projects/.gitkeep
+**/data/flowise/storage/
+**/data/flowise/uploads/
+**/data/uptime-kuma/screenshots/
+**/data/uptime-kuma/upload/
+**/data/traefik/certs/
+
+# ==============================================
+# 🖥️ OS FILES
+# ==============================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

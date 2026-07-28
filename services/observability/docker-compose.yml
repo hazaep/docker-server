@@ -1,0 +1,42 @@
+# ==============================================
+# ============= ⚪ OBSERVABILIDAD ==============
+# ==============================================
+# Capa 5 — Observabilidad
+# Si un servicio de esta capa cae, operas ciego.
+# El ecosistema funciona pero no sabes si está sano.
+#
+# Servicios:
+#   - dozzle      (visor de logs en tiempo real)
+#   - uptime-kuma (monitor de disponibilidad)
+# ==============================================
+
+services:
+  # --- Dozzle (visor de logs en tiempo real) ---
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dozzle.rule=Host(`logs.${DOMINIO}`)"
+      - "traefik.http.routers.dozzle.entrypoints=web"
+      - "traefik.http.services.dozzle.loadbalancer.server.port=8080"
+
+  # --- Uptime Kuma (monitor de disponibilidad) ---
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - ./data/uptime-kuma:/app/data
+    environment:
+      - TZ=${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kuma.rule=Host(`status.${DOMINIO}`)"
+      - "traefik.http.routers.kuma.entrypoints=web"
+      - "traefik.http.services.kuma.loadbalancer.server.port=3001"

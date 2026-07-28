@@ -1,0 +1,244 @@
+networks:
+  services:
+    name: services
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+  nocodb-data:
+    driver: local
+  mariadb_data:
+    driver: local
+  wordp_data:
+    driver: local
+  arcane-data:
+    driver: local
+
+services:
+  # ==============================================
+  # 🔴 FUNDACIÓN
+  # ==============================================
+  traefik:
+    extends:
+      file: ./services/foundation/docker-compose.yml
+      service: traefik
+    networks:
+      - services
+
+  cloudflared:
+    extends:
+      file: ./services/foundation/docker-compose.yml
+      service: cloudflared
+    networks:
+      - services
+    depends_on:
+      - traefik
+
+  postgres:
+    extends:
+      file: ./services/foundation/docker-compose.yml
+      service: postgres
+    networks:
+      - services
+
+  redis:
+    extends:
+      file: ./services/foundation/docker-compose.yml
+      service: redis
+    networks:
+      - services
+
+  # ==============================================
+  # 🟠 CORE
+  # ==============================================
+  n8n:
+    extends:
+      file: ./services/core/docker-compose.yml
+      service: n8n
+    networks:
+      - services
+    depends_on:
+      - postgres
+      - redis
+
+  n8n-runners:
+    extends:
+      file: ./services/core/docker-compose.yml
+      service: n8n-runners
+    networks:
+      - services
+    depends_on:
+      - n8n
+
+  open-webui:
+    extends:
+      file: ./services/core/docker-compose.yml
+      service: open-webui
+    networks:
+      - services
+
+  open-terminal:
+    extends:
+      file: ./services/core/docker-compose.yml
+      service: open-terminal
+    networks:
+      - services
+    depends_on:
+      - open-webui
+
+  nocodb:
+    extends:
+      file: ./services/core/docker-compose.yml
+      service: nocodb
+    networks:
+      - services
+    depends_on:
+      - postgres
+      - redis
+
+  watchtower:
+    extends:
+      file: ./services/core/docker-compose.yml
+      service: watchtower
+    networks:
+      - services
+
+  # ==============================================
+  # 🟡 EXTENSIÓN
+  # ==============================================
+  minio:
+    extends:
+      file: ./services/extencion/docker-compose.yml
+      service: minio
+    networks:
+      - services
+
+  flowise:
+    extends:
+      file: ./services/extencion/docker-compose.yml
+      service: flowise
+    networks:
+      - services
+    depends_on:
+      - postgres
+      - redis
+
+  flowise-worker:
+    extends:
+      file: ./services/extencion/docker-compose.yml
+      service: flowise-worker
+    networks:
+      - services
+    depends_on:
+      - postgres
+      - redis
+      - flowise
+
+  chrome:
+    extends:
+      file: ./services/extencion/docker-compose.yml
+      service: chrome
+    networks:
+      - services
+
+  oikb:
+    extends:
+      file: ./services/extencion/docker-compose.yml
+      service: oikb
+    networks:
+      - services
+    depends_on:
+      - open-webui
+
+  # ==============================================
+  # 🟢 HERRAMIENTA
+  # ==============================================
+  pgadmin:
+    extends:
+      file: ./services/tool/docker-compose.yml
+      service: pgadmin
+    networks:
+      - services
+
+  phpadmin:
+    extends:
+      file: ./services/tool/docker-compose.yml
+      service: phpadmin
+    networks:
+      - services
+
+  pgbackup:
+    extends:
+      file: ./services/tool/docker-compose.yml
+      service: pgbackup
+    networks:
+      - services
+
+  vaultwarden:
+    extends:
+      file: ./services/tool/docker-compose.yml
+      service: vaultwarden
+    networks:
+      - services
+
+  # ==============================================
+  # ⚪ OBSERVABILIDAD
+  # ==============================================
+  dozzle:
+    extends:
+      file: ./services/observability/docker-compose.yml
+      service: dozzle
+    networks:
+      - services
+
+  uptime-kuma:
+    extends:
+      file: ./services/observability/docker-compose.yml
+      service: uptime-kuma
+    networks:
+      - services
+
+  # ==============================================
+  # 🟣 EXPERIMENTO
+  # ==============================================
+  mariadb:
+    extends:
+      file: ./services/experiment/docker-compose.yml
+      service: mariadb
+    networks:
+      - services
+
+  wordpress:
+    extends:
+      file: ./services/experiment/docker-compose.yml
+      service: wordpress
+    networks:
+      - services
+    depends_on:
+      - mariadb
+
+  arcane:
+    extends:
+      file: ./services/experiment/docker-compose.yml
+      service: arcane
+    networks:
+      - services
+    depends_on:
+      - postgres
+
+  resume:
+    extends:
+      file: ./services/experiment/docker-compose.yml
+      service: resume
+    networks:
+      - services
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - chrome
