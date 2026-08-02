@@ -2,7 +2,7 @@
 
 ## 🎯 Propósito
 
-Sincronizador incremental de Knowledge Bases. **Mantiene las KBs de Open WebUI actualizadas desde directorios locales u otras fuentes.** Modo daemon con schedule, API REST y webhooks.
+Sincronizador incremental de Knowledge Bases. **Mantiene las KBs de Open WebUI actualizadas desde directorios locales sincronizados vía Syncthing.** Modo daemon con schedule, API REST y webhooks.
 
 ---
 
@@ -32,9 +32,10 @@ Sincronizador incremental de Knowledge Bases. **Mantiene las KBs de Open WebUI a
 |---|---|---|
 | `OIKB_OPEN_WEBUI_API_KEY` | **Sí** | API key de Open WebUI |
 | `OIKB_API_KEY` | **Sí** | API key para proteger el daemon |
-| `KB_BILDUNG_ID` | Condicional | UUID de la KB de Bildung |
-| `KB_OBSIDIAN_ID` | Condicional | UUID de la KB de Obsidian |
-| `SYNC_PATH` | No | Path host montado en `/sync` (default: `/home/user/sync`) |
+| `KB_CODEX_ID` | Condicional | UUID de la KB del Codex |
+| `KB_N8N_DOCS_ID` | Condicional | UUID de la KB de n8n docs |
+| `KB_DOCKER_SERVER_ID` | Condicional | UUID de la KB del docker-server |
+| `SYNC_PATH` | No | Path host para bind mount `/sync` |
 | `TZ` | No | Zona horaria |
 
 ---
@@ -43,7 +44,7 @@ Sincronizador incremental de Knowledge Bases. **Mantiene las KBs de Open WebUI a
 
 | Path host | Path contenedor | Propósito |
 |---|---|---|
-| `./data/oikb/.oikb.yaml` (ro) | `/app/.oikb.yaml` | Configuración de fuentes |
+| `./data/oikb/.oikb.yaml` (ro) | `/app/.oikb.yaml` | Fuentes, schedules, filtros |
 | `${SYNC_PATH}` (ro) | `/sync` | Directorios a sincronizar |
 
 ---
@@ -61,48 +62,41 @@ docker compose up -d oikb
 ```bash
 curl -s http://oikb:8080/health/ready
 # Esperado: {"status": "ok"}
-
-# Ver fuentes configuradas
-docker compose logs oikb | grep -i "source"
 ```
 
 ---
 
 ## ⚙️ Setup inicial
 
-### 1. Crear KB en Open WebUI
+### 1. Crear KBs en Open WebUI
 
-Abrir Open WebUI → Knowledge → Create Knowledge Base → copiar el UUID de la URL.
+Abrir Open WebUI → Knowledge → Create Knowledge Base. Copiar los UUIDs de las URLs.
 
 ### 2. Configurar `.oikb.yaml`
 
-```yaml
-# ./data/oikb/.oikb.yaml
-defaults:
-  interval: 30m
-  concurrency: 2
+Las fuentes ya están definidas en `./data/oikb/.oikb.yaml`:
 
-sources:
-  - name: bildung-docs
-    source: /sync/bildung/docs
-    kb-id: ${KB_BILDUNG_ID}
-    filter:
-      include: ["**.md"]
+- `codex` → Codex de Bildung (7 Escuelas, ontología)
+- `n8n-docs` → documentación de n8n
+- `docker-server` → documentación del docker-server
+
+### 3. Asegurar que Syncthing sincroniza las carpetas
+
+```bash
+ls /home/user/sync/Obsidian/Mi\ Mente/Bildung/Lab/codex/
+ls /home/user/sync/repos/n8n-docs/
+ls /home/user/sync/Obsidian/Mi\ Mente/Bildung/Lab/docker-server/
 ```
 
-### 3. Configurar `.env`
+### 4. Configurar `.env`
 
 ```bash
 OIKB_OPEN_WEBUI_API_KEY=sk-...
 OIKB_API_KEY=<generar>
-KB_BILDUNG_ID=<uuid>
+KB_CODEX_ID=<uuid>
+KB_N8N_DOCS_ID=<uuid>
+KB_DOCKER_SERVER_ID=<uuid>
 SYNC_PATH=/home/user/sync
-```
-
-### 4. Asegurar que los directorios existen bajo `SYNC_PATH`
-
-```bash
-ls /home/user/sync/bildung/docs/
 ```
 
 ### 5. Levantar
@@ -117,7 +111,7 @@ docker compose logs -f oikb
 ## 🔄 Forzar sync manual
 
 ```bash
-curl -X POST https://oikb.${DOMINIO}/sync/bildung-docs \
+curl -X POST https://oikb.${DOMINIO}/sync/codex \
   -H "Authorization: Bearer ${OIKB_API_KEY}"
 ```
 
@@ -138,7 +132,6 @@ Los datos están en Open WebUI (no en oikb).
 | Síntoma | Causa probable | Solución |
 |---|---|---|
 | `401 Unauthorized` | API key de Open WebUI incorrecta | Verificar `OIKB_OPEN_WEBUI_API_KEY` en `.env` |
-| `source not found` | El directorio no existe en `/sync` | Verificar bind mount con `docker compose exec oikb ls /sync/` |
+| `source not found` | El directorio no existe en `/sync` | Verificar bind mount y Syncthing |
 | No sincroniza | Schedule no se ha cumplido aún | Forzar: `POST /sync/{name}` |
 | `KB not found` | KB ID incorrecto | Verificar UUID en Open WebUI |
-| API responde 401 | `OIKB_API_KEY` no configurada o incorrecta | Verificar `.env` y header `Authorization: Bearer` |

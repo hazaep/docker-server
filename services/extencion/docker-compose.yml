@@ -119,8 +119,10 @@ services:
       - OPEN_WEBUI_API_KEY=${OIKB_OPEN_WEBUI_API_KEY}
       - OIKB_API_KEY=${OIKB_API_KEY}
       - LOG_FORMAT=json
-      - KB_BILDUNG_ID=${KB_BILDUNG_ID}
-      - KB_OBSIDIAN_ID=${KB_OBSIDIAN_ID}
+      - KB_CODEX_ID=${KB_CODEX_ID}
+      - KB_N8N_DOCS_ID=${KB_N8N_DOCS_ID}
+      - KB_DOCKER_SERVER_ID=${KB_DOCKER_SERVER_ID}
+      # - KB_OBSIDIAN_ID=${KB_OBSIDIAN_ID}
       - TZ=${TZ}
     volumes:
       - ./data/oikb/.oikb.yaml:/app/.oikb.yaml:ro

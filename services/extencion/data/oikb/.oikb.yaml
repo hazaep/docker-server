@@ -11,15 +11,25 @@ defaults:
   concurrency: 2
   filter:
     max-size: 50mb
-    include: ["**.md"]
+    include: ["**.md", "**.html"]
 
 sources:
-  # --- Bildung documentation ---
-  # Syncs the project documentation into its own Knowledge Base
-  # so the LLM has full context of the ecosystem architecture.
-  - name: bildung-docs
-    source: /sync/bildung/docs
-    kb-id: ${KB_BILDUNG_ID}
+  # --- Bildung Codex ---
+  # Syncs the Codex (7 Escuelas, investigación, ontología)
+  # into its own Knowledge Base so the LLM has full context.
+  - name: codex
+    source: "/sync/Obsidian/Mi Mente/Bildung/Lab/codex"
+    kb-id: ${KB_CODEX_ID}
+
+  # --- n8n documentation ---
+  - name: n8n-docs
+    source: "/sync/repos/n8n-docs"
+    kb-id: ${KB_N8N_DOCS_ID}
+
+  # --- docker-server ---
+  - name: docker-server
+    source: "/sync/Obsidian/Mi Mente/Bildung/Lab/docker-server"
+    kb-id: ${KB_DOCKER_SERVER_ID}
 
   # --- Obsidian vault ---
   # Uncomment and configure when your vault is synced to the Pi.

@@ -28,6 +28,7 @@ Actualizador automático de imágenes Docker. **El sistema inmunológico del eco
 
 | Variable | Obligatorio | Default | Descripción |
 |---|---|---|---|
+| `WATCHTOWER_LABEL_ENABLE` | No | `true` — solo actualiza contenedores con label explícita |
 | `WATCHTOWER_CLEANUP` | No | `false` | Eliminar imágenes viejas |
 | `WATCHTOWER_REMOVE_VOLUMES` | No | `false` | ⚠️ NO activar — borra volúmenes huérfanos |
 | `WATCHTOWER_SCHEDULE` | No | — | Cron expression |

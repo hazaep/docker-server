@@ -63,6 +63,7 @@ Watchtower no almacena estado. Todo está en la memoria del contenedor y el sock
 
 | Variable | Obligatorio | Default | Descripción |
 |---|---|---|---|
+| `WATCHTOWER_LABEL_ENABLE` | No | `true` — solo actualiza contenedores con label explícita |
 | `WATCHTOWER_CLEANUP` | No | `false` | Eliminar imágenes viejas tras actualizar |
 | `WATCHTOWER_REMOVE_VOLUMES` | No | `false` | Eliminar volúmenes huérfanos (⚠️ peligroso) |
 | `WATCHTOWER_SCHEDULE` | No | — | Cron expression (vacío = watch inmediato) |

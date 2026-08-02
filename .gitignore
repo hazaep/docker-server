@@ -6,7 +6,7 @@ env.txt
 env.*.txt
 .env.*
 *.env.save
-!.env.example
+!*.example
 
 # ==============================================
 # 🔑 KEYS & CERTS
@@ -43,7 +43,11 @@ token_hash_secret.key
 # Service data
 **/redis_data/
 **/minio_data/
-**/vaultwarden_data/
+**/vaultwarden/
+**/bildung/
+**/open-terminal/
+**/open-webui/
+**/pgadmin/
 **/.minio.sys/
 
 # ==============================================
