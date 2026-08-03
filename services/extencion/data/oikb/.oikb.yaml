@@ -28,7 +28,7 @@ sources:
 
   # --- docker-server ---
   - name: docker-server
-    source: "/sync/Obsidian/Mi Mente/Bildung/Lab/docker-server"
+    source: "/sync/Obsidian/Mi Mente/Bildung/Lab/5-infraestructura/docker-server"
     kb-id: ${KB_DOCKER_SERVER_ID}
 
   # --- Obsidian vault ---

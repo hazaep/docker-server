@@ -85,7 +85,7 @@ Las fuentes ya están definidas en `./data/oikb/.oikb.yaml`:
 ```bash
 ls /home/user/sync/Obsidian/Mi\ Mente/Bildung/Lab/codex/
 ls /home/user/sync/repos/n8n-docs/
-ls /home/user/sync/Obsidian/Mi\ Mente/Bildung/Lab/docker-server/
+ls /home/user/sync/Obsidian/Mi\ Mente/Bildung/Lab/5-infraestructura/docker-server/
 ```
 
 ### 4. Configurar `.env`

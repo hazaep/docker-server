@@ -75,7 +75,7 @@ oikb
 |---|---|---|---|
 | `codex` | `/sync/Obsidian/Mi Mente/Bildung/Lab/codex` | `${KB_CODEX_ID}` | `.md`, `.html` |
 | `n8n-docs` | `/sync/repos/n8n-docs` | `${KB_N8N_DOCS_ID}` | `.md`, `.html` |
-| `docker-server` | `/sync/Obsidian/Mi Mente/Bildung/Lab/docker-server` | `${KB_DOCKER_SERVER_ID}` | `.md`, `.html` |
+| `docker-server` | `/sync/Obsidian/Mi Mente/Bildung/Lab/5-infraestructura/docker-server` | `${KB_DOCKER_SERVER_ID}` | `.md`, `.html` |
 
 ---
 
